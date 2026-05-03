@@ -1,7 +1,6 @@
 # ⚡ Electricity Bill Management System (EBMS)
 ## Spring Boot + MySQL + Thymeleaf
 
----
 
 ## ✅ STEP-BY-STEP RUN INSTRUCTIONS
 
