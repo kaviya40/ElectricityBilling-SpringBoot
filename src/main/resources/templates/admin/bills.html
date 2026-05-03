@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bills – EBMS</title>
+<link rel="stylesheet" th:href="@{/css/style.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><i class="fas fa-bolt"></i><span>EBMS</span></div>
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+      <a href="/admin/customers" class="nav-item"><i class="fas fa-users"></i><span>Customers</span></a>
+      <a href="/admin/bills"     class="nav-item active"><i class="fas fa-file-invoice"></i><span>Bills</span></a>
+      <a href="/admin/users"     class="nav-item"><i class="fas fa-user-cog"></i><span>Users</span></a>
+      <a href="/auth/logout"     class="nav-item logout"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title"><i class="fas fa-file-invoice"></i> Bill Management</div>
+      <div class="topbar-right">
+        <button class="dark-toggle" onclick="toggleDark()"><i class="fas fa-moon"></i></button>
+        <span class="user-badge"><i class="fas fa-user-shield"></i> <span sec:authentication="name">Admin</span></span>
+      </div>
+    </header>
+    <div class="content">
+      <div th:if="${success}" class="alert alert-success"><i class="fas fa-check-circle"></i> <span th:text="${success}"></span></div>
+      <div th:if="${error}"   class="alert alert-danger"><i class="fas fa-times-circle"></i> <span th:text="${error}"></span></div>
+
+      <!-- Tariff Info -->
+      <div class="tariff-banner">
+        <i class="fas fa-info-circle"></i>
+        <strong>Tariff Slabs:</strong> 0–100 units @₹1.5 &nbsp;|&nbsp; 101–300 units @₹3.0 &nbsp;|&nbsp; Above 300 @₹5.0 &nbsp;|&nbsp; Fixed Charge: ₹50
+      </div>
+
+      <!-- Generate Bill -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-bolt"></i> Generate New Bill</div>
+        <div class="card-body">
+          <form th:action="@{/admin/bills/generate}" method="post" class="form-grid">
+            <div class="form-group">
+              <label>Customer *</label>
+              <select name="customerId" required>
+                <option value="">-- Select Customer --</option>
+                <option th:each="c : ${customers}" th:value="${c.id}" th:text="${c.name + ' (' + c.meterNumber + ')'}"></option>
+              </select>
+            </div>
+            <div class="form-group"><label>Units Consumed *</label><input type="number" name="unitsConsumed" min="0" max="99999" placeholder="Enter units" required id="unitsInput" oninput="calcBill()"></div>
+            <div class="form-group"><label>Bill Date *</label><input type="date" name="billDate" required th:value="${#dates.format(#dates.createNow(),'yyyy-MM-dd')}"></div>
+            <div class="form-group">
+              <label>Billing Month *</label>
+              <select name="billingMonth" required>
+                <option th:each="m : ${months}" th:value="${m}" th:text="${m}"></option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Billing Year *</label>
+              <select name="billingYear" required>
+                <option th:each="y : ${years}" th:value="${y}" th:text="${y}"></option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Estimated Amount</label>
+              <div class="calc-box" id="calcBox">Enter units to preview</div>
+            </div>
+            <div class="form-group form-submit"><button type="submit" class="btn-primary"><i class="fas fa-bolt"></i> Generate Bill</button></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Bills Table -->
+      <div class="card">
+        <div class="card-header">
+          <span><i class="fas fa-list"></i> All Bills (<span th:text="${#lists.size(bills)}">0</span>)</span>
+          <input type="text" id="searchBill" placeholder="Search..." oninput="filterTable()" class="table-search">
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table" id="billTable">
+              <thead><tr><th>Bill No</th><th>Customer</th><th>Meter</th><th>Units</th><th>Amount</th><th>Bill Date</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr th:each="b : ${bills}">
+                  <td th:text="${b.billNumber}"></td>
+                  <td th:text="${b.customer.name}"></td>
+                  <td><code th:text="${b.customer.meterNumber}"></code></td>
+                  <td th:text="${b.unitsConsumed}"></td>
+                  <td><strong th:text="'₹' + ${b.totalAmount}"></strong></td>
+                  <td th:text="${b.billDate}"></td>
+                  <td th:text="${b.dueDate}"></td>
+                  <td>
+                    <span class="badge"
+                          th:classappend="${b.status.name()=='PAID'?'badge-success':b.status.name()=='OVERDUE'?'badge-danger':'badge-warning'}"
+                          th:text="${b.status}"></span>
+                  </td>
+                  <td class="actions">
+                    <a th:href="@{/admin/bills/pdf/{id}(id=${b.id})}" class="btn-sm btn-info" title="Download PDF"><i class="fas fa-file-pdf"></i></a>
+                    <button class="btn-sm btn-secondary" onclick="showQr([[${b.id}]])" title="QR Code"><i class="fas fa-qrcode"></i></button>
+                    <form th:if="${b.status.name()!='PAID'}" th:action="@{/admin/bills/pay/{id}(id=${b.id})}" method="post" style="display:inline">
+                      <input type="hidden" name="paymentMode" value="CASH">
+                      <button class="btn-sm btn-success" title="Mark Paid"><i class="fas fa-check"></i></button>
+                    </form>
+                    <form th:if="${b.status.name()=='PAID'}" th:action="@{/admin/bills/unpay/{id}(id=${b.id})}" method="post" style="display:inline">
+                      <button class="btn-sm btn-warning" title="Mark Unpaid"><i class="fas fa-undo"></i></button>
+                    </form>
+                    <form th:action="@{/admin/bills/delete/{id}(id=${b.id})}" method="post" style="display:inline" onsubmit="return confirm('Delete this bill?')">
+                      <button class="btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                    </form>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(bills)}"><td colspan="9" class="text-center">No bills found</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal" style="max-width:280px;text-align:center">
+    <div class="modal-header"><h3>Payment QR Code</h3><button onclick="closeQr()">×</button></div>
+    <img id="qrImg" src="" alt="QR Code" style="width:200px;margin:20px auto;display:block;">
+    <p style="font-size:12px;color:#666">Scan to pay</p>
+  </div>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+<script>
+function calcBill(){
+  const u = parseInt(document.getElementById('unitsInput').value)||0;
+  let charges = 0;
+  if(u<=100) charges=u*1.5;
+  else if(u<=300) charges=100*1.5+(u-100)*3;
+  else charges=100*1.5+200*3+(u-300)*5;
+  const total=(charges+50).toFixed(2);
+  document.getElementById('calcBox').innerHTML=
+    `Units: ${u} | Unit Charges: ₹${charges.toFixed(2)} + Fixed: ₹50 = <strong>₹${total}</strong>`;
+}
+function showQr(id){
+  document.getElementById('qrImg').src='/admin/bills/qr/'+id;
+  document.getElementById('qrModal').style.display='flex';
+}
+function closeQr(){ document.getElementById('qrModal').style.display='none'; }
+function filterTable(){
+  const q=document.getElementById('searchBill').value.toLowerCase();
+  document.querySelectorAll('#billTable tbody tr').forEach(r=>{
+    r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';
+  });
+}
+</script>
+</body>
+</html>

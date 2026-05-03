@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register – EBMS</title>
+<link rel="stylesheet" th:href="@{/css/style.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="auth-body">
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width:480px">
+    <div class="auth-logo">
+      <i class="fas fa-bolt"></i>
+      <h1>Register</h1>
+      <p>Create your EBMS account</p>
+    </div>
+    <div th:if="${error}"   class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span></div>
+    <div th:if="${success}" class="alert alert-success"><i class="fas fa-check-circle"></i> <span th:text="${success}"></span></div>
+    <form th:action="@{/auth/register}" method="post" class="auth-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label><i class="fas fa-user"></i> Username</label>
+          <input type="text" name="username" placeholder="Username" required minlength="4" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-id-card"></i> Full Name</label>
+          <input type="text" name="fullName" placeholder="Full Name" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" name="email" placeholder="Email address" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-phone"></i> Phone</label>
+        <input type="tel" name="phone" placeholder="10-digit phone" pattern="[0-9]{10}">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label><i class="fas fa-lock"></i> Password</label>
+          <input type="password" name="password" placeholder="Min 6 chars" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-lock"></i> Confirm Password</label>
+          <input type="password" name="confirmPassword" placeholder="Repeat password" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary w-full"><i class="fas fa-user-plus"></i> Create Account</button>
+    </form>
+    <p class="auth-footer">Already have an account? <a th:href="@{/auth/login}">Login here</a></p>
+  </div>
+</div>
+</body>
+</html>

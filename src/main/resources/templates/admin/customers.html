@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Customers – EBMS</title>
+<link rel="stylesheet" th:href="@{/css/style.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><i class="fas fa-bolt"></i><span>EBMS</span></div>
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+      <a href="/admin/customers" class="nav-item active"><i class="fas fa-users"></i><span>Customers</span></a>
+      <a href="/admin/bills"     class="nav-item"><i class="fas fa-file-invoice"></i><span>Bills</span></a>
+      <a href="/admin/users"     class="nav-item"><i class="fas fa-user-cog"></i><span>Users</span></a>
+      <a href="/auth/logout"     class="nav-item logout"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title"><i class="fas fa-users"></i> Customer Management</div>
+      <div class="topbar-right">
+        <button class="dark-toggle" onclick="toggleDark()"><i class="fas fa-moon"></i></button>
+        <span class="user-badge"><i class="fas fa-user-shield"></i> <span sec:authentication="name">Admin</span></span>
+      </div>
+    </header>
+    <div class="content">
+      <div th:if="${success}" class="alert alert-success"><i class="fas fa-check-circle"></i> <span th:text="${success}"></span></div>
+      <div th:if="${error}"   class="alert alert-danger"><i class="fas fa-times-circle"></i> <span th:text="${error}"></span></div>
+
+      <!-- Add Customer -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-user-plus"></i> Add New Customer</div>
+        <div class="card-body">
+          <form th:action="@{/admin/customers/add}" method="post" class="form-grid">
+            <div class="form-group"><label>Customer Name *</label><input name="name" placeholder="Full name" required></div>
+            <div class="form-group"><label>Meter Number *</label><input name="meterNumber" placeholder="e.g. MTR001234" required pattern="[A-Za-z0-9]{6,12}"></div>
+            <div class="form-group"><label>Address *</label><input name="address" placeholder="Full address" required></div>
+            <div class="form-group"><label>Phone</label><input name="phone" placeholder="10-digit phone" pattern="[0-9]{10}"></div>
+            <div class="form-group"><label>Email</label><input type="email" name="email" placeholder="customer@email.com"></div>
+            <div class="form-group">
+              <label>Connection Type</label>
+              <select name="connectionType">
+                <option value="DOMESTIC">Domestic</option>
+                <option value="COMMERCIAL">Commercial</option>
+                <option value="INDUSTRIAL">Industrial</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Owner Username *</label><input name="ownerUsername" placeholder="Username of linked user" required></div>
+            <div class="form-group form-submit"><button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Add Customer</button></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Customer List -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-list"></i> All Customers (<span th:text="${#lists.size(customers)}">0</span>)</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>#</th><th>Name</th><th>Meter No</th><th>Address</th><th>Phone</th><th>Type</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr th:each="c,i : ${customers}">
+                  <td th:text="${i.count}"></td>
+                  <td th:text="${c.name}"></td>
+                  <td><code th:text="${c.meterNumber}"></code></td>
+                  <td th:text="${c.address}"></td>
+                  <td th:text="${c.phone}"></td>
+                  <td><span class="badge badge-info" th:text="${c.connectionType}"></span></td>
+                  <td>
+                    <button class="btn-sm btn-warning" onclick="openEdit([[${c.id}]],'[[${c.name}]]','[[${c.address}]]','[[${c.phone}]]','[[${c.email}]]','[[${c.connectionType}]]')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <form th:action="@{/admin/customers/delete/{id}(id=${c.id})}" method="post" style="display:inline" onsubmit="return confirm('Delete customer?')">
+                      <button class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(customers)}"><td colspan="7" class="text-center">No customers found</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-edit"></i> Edit Customer</h3><button onclick="closeEdit()">×</button></div>
+    <form id="editForm" method="post" class="form-grid">
+      <input type="hidden" id="editId">
+      <div class="form-group"><label>Name *</label><input name="name" id="eName" required></div>
+      <div class="form-group"><label>Address *</label><input name="address" id="eAddr" required></div>
+      <div class="form-group"><label>Phone</label><input name="phone" id="ePhone"></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" id="eEmail"></div>
+      <div class="form-group">
+        <label>Connection Type</label>
+        <select name="connectionType" id="eType">
+          <option value="DOMESTIC">Domestic</option>
+          <option value="COMMERCIAL">Commercial</option>
+          <option value="INDUSTRIAL">Industrial</option>
+        </select>
+      </div>
+      <div class="form-group form-submit"><button type="submit" class="btn-primary">Update</button></div>
+    </form>
+  </div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+<script>
+function openEdit(id,name,addr,phone,email,type){
+  document.getElementById('editForm').action='/admin/customers/update/'+id;
+  document.getElementById('eName').value=name;
+  document.getElementById('eAddr').value=addr;
+  document.getElementById('ePhone').value=phone;
+  document.getElementById('eEmail').value=email;
+  document.getElementById('eType').value=type;
+  document.getElementById('editModal').style.display='flex';
+}
+function closeEdit(){ document.getElementById('editModal').style.display='none'; }
+</script>
+</body>
+</html>

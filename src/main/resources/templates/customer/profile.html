@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profile – EBMS</title>
+<link rel="stylesheet" th:href="@{/css/style.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><i class="fas fa-bolt"></i><span>EBMS</span></div>
+    <nav class="sidebar-nav">
+      <a href="/customer/dashboard" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+      <a href="/customer/bills"     class="nav-item"><i class="fas fa-file-invoice"></i><span>My Bills</span></a>
+      <a href="/customer/profile"   class="nav-item active"><i class="fas fa-user"></i><span>Profile</span></a>
+      <a href="/auth/logout"        class="nav-item logout"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title"><i class="fas fa-user"></i> My Profile</div>
+      <div class="topbar-right">
+        <button class="dark-toggle" onclick="toggleDark()"><i class="fas fa-moon"></i></button>
+        <span class="user-badge"><i class="fas fa-user"></i> <span sec:authentication="name">User</span></span>
+      </div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-header"><i class="fas fa-id-card"></i> Account Details</div>
+        <div class="card-body">
+          <div class="profile-grid">
+            <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
+            <div class="profile-details">
+              <div class="detail-row"><label>Full Name</label><span th:text="${user.fullName}"></span></div>
+              <div class="detail-row"><label>Username</label><span th:text="${user.username}"></span></div>
+              <div class="detail-row"><label>Email</label><span th:text="${user.email}"></span></div>
+              <div class="detail-row"><label>Phone</label><span th:text="${user.phone ?: '-'}"></span></div>
+              <div class="detail-row"><label>Role</label><span class="badge badge-info" th:text="${user.role}"></span></div>
+              <div class="detail-row"><label>Member Since</label><span th:text="${#temporals.format(user.createdAt,'dd MMM yyyy')}"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" th:if="${not #lists.isEmpty(customers)}">
+        <div class="card-header"><i class="fas fa-bolt"></i> My Meter Connections</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>Meter No</th><th>Address</th><th>Connection Type</th><th>Phone</th></tr></thead>
+              <tbody>
+                <tr th:each="c : ${customers}">
+                  <td><code th:text="${c.meterNumber}"></code></td>
+                  <td th:text="${c.address}"></td>
+                  <td><span class="badge badge-info" th:text="${c.connectionType}"></span></td>
+                  <td th:text="${c.phone ?: '-'}"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

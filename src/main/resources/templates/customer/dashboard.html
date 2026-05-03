@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Dashboard – EBMS</title>
+<link rel="stylesheet" th:href="@{/css/style.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><i class="fas fa-bolt"></i><span>EBMS</span></div>
+    <nav class="sidebar-nav">
+      <a href="/customer/dashboard" class="nav-item active"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+      <a href="/customer/bills"     class="nav-item"><i class="fas fa-file-invoice"></i><span>My Bills</span></a>
+      <a href="/customer/profile"   class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+      <a href="/auth/logout"        class="nav-item logout"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title"><i class="fas fa-tachometer-alt"></i> My Dashboard</div>
+      <div class="topbar-right">
+        <button class="dark-toggle" onclick="toggleDark()"><i class="fas fa-moon"></i></button>
+        <span class="user-badge"><i class="fas fa-user"></i> <span sec:authentication="name">User</span></span>
+      </div>
+    </header>
+    <div class="content">
+      <!-- Due Soon Alert -->
+      <div th:each="b : ${dueSoon}" class="alert alert-warning">
+        <i class="fas fa-clock"></i>
+        Bill <strong th:text="${b.billNumber}"></strong> of ₹<span th:text="${b.totalAmount}"></span>
+        is due on <span th:text="${b.dueDate}"></span>!
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+          <div class="stat-info"><span th:text="${totalBills}">0</span><p>Total Bills</p></div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-info"><span th:text="${paidBills}">0</span><p>Paid Bills</p></div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+          <div class="stat-info"><span th:text="${pendingBills}">0</span><p>Pending Bills</p></div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+          <div class="stat-info"><span th:text="'₹' + ${totalPaid}">₹0</span><p>Total Paid</p></div>
+        </div>
+      </div>
+
+      <!-- Usage Chart -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-chart-line"></i> Monthly Usage (kWh)</div>
+        <div class="card-body"><canvas id="usageChart" height="90"></canvas></div>
+      </div>
+
+      <!-- Recent Bills -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-history"></i> Recent Bills</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead><tr><th>Bill No</th><th>Month</th><th>Units</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Download</th></tr></thead>
+              <tbody>
+                <tr th:each="b : ${recentBills}">
+                  <td th:text="${b.billNumber}"></td>
+                  <td th:text="${b.billingMonth + ' ' + b.billingYear}"></td>
+                  <td th:text="${b.unitsConsumed}"></td>
+                  <td th:text="'₹' + ${b.totalAmount}"></td>
+                  <td th:text="${b.dueDate}"></td>
+                  <td><span class="badge" th:classappend="${b.status.name()=='PAID'?'badge-success':b.status.name()=='OVERDUE'?'badge-danger':'badge-warning'}" th:text="${b.status}"></span></td>
+                  <td><a th:href="@{/customer/bills/pdf/{id}(id=${b.id})}" class="btn-sm btn-info"><i class="fas fa-download"></i> PDF</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(recentBills)}"><td colspan="7" class="text-center">No bills yet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script th:inline="javascript">
+  const labels = /*[[${chartLabels}]]*/ [];
+  const units  = /*[[${chartUnits}]]*/ [];
+  new Chart(document.getElementById('usageChart'), {
+    type:'line',
+    data:{
+      labels:labels,
+      datasets:[{label:'Units (kWh)',data:units,
+        borderColor:'rgba(30,136,229,1)',backgroundColor:'rgba(30,136,229,0.15)',
+        fill:true,tension:0.4,pointRadius:5,pointBackgroundColor:'#1e88e5'}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+  });
+</script>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

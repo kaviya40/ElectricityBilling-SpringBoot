@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Bills – EBMS</title>
+<link rel="stylesheet" th:href="@{/css/style.css}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><i class="fas fa-bolt"></i><span>EBMS</span></div>
+    <nav class="sidebar-nav">
+      <a href="/customer/dashboard" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+      <a href="/customer/bills"     class="nav-item active"><i class="fas fa-file-invoice"></i><span>My Bills</span></a>
+      <a href="/customer/profile"   class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+      <a href="/auth/logout"        class="nav-item logout"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title"><i class="fas fa-file-invoice"></i> My Bills</div>
+      <div class="topbar-right">
+        <button class="dark-toggle" onclick="toggleDark()"><i class="fas fa-moon"></i></button>
+        <span class="user-badge"><i class="fas fa-user"></i> <span sec:authentication="name">User</span></span>
+      </div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-header">
+          <span><i class="fas fa-list"></i> Bill History (<span th:text="${#lists.size(bills)}">0</span>)</span>
+          <input type="text" id="searchBill" placeholder="Search..." oninput="filterTable()" class="table-search">
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table" id="billTable">
+              <thead><tr><th>Bill No</th><th>Month/Year</th><th>Meter</th><th>Units</th><th>Unit Charges</th><th>Fixed</th><th>Penalty</th><th>Total</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr th:each="b : ${bills}">
+                  <td th:text="${b.billNumber}"></td>
+                  <td th:text="${b.billingMonth + ' ' + b.billingYear}"></td>
+                  <td><code th:text="${b.customer.meterNumber}"></code></td>
+                  <td th:text="${b.unitsConsumed}"></td>
+                  <td th:text="'₹' + ${b.unitCharges}"></td>
+                  <td th:text="'₹' + ${b.fixedCharges}"></td>
+                  <td th:text="${b.penaltyCharges != null && b.penaltyCharges > 0 ? '₹' + b.penaltyCharges : '-'}"></td>
+                  <td><strong th:text="'₹' + ${b.totalAmount}"></strong></td>
+                  <td th:text="${b.dueDate}"></td>
+                  <td><span class="badge" th:classappend="${b.status.name()=='PAID'?'badge-success':b.status.name()=='OVERDUE'?'badge-danger':'badge-warning'}" th:text="${b.status}"></span></td>
+                  <td>
+                    <a th:href="@{/customer/bills/pdf/{id}(id=${b.id})}" class="btn-sm btn-info" title="Download PDF"><i class="fas fa-file-pdf"></i></a>
+                    <button class="btn-sm btn-secondary" onclick="showQr([[${b.id}]])" title="QR Code"><i class="fas fa-qrcode"></i></button>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(bills)}"><td colspan="11" class="text-center">No bills found</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- QR Modal -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal" style="max-width:280px;text-align:center">
+    <div class="modal-header"><h3>Payment QR Code</h3><button onclick="closeQr()">×</button></div>
+    <img id="qrImg" src="" alt="QR" style="width:200px;margin:20px auto;display:block;">
+    <p style="font-size:12px;color:#666">Scan to pay</p>
+  </div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+<script>
+function showQr(id){ document.getElementById('qrImg').src='/customer/bills/qr/'+id; document.getElementById('qrModal').style.display='flex'; }
+function closeQr(){ document.getElementById('qrModal').style.display='none'; }
+function filterTable(){
+  const q=document.getElementById('searchBill').value.toLowerCase();
+  document.querySelectorAll('#billTable tbody tr').forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'; });
+}
+</script>
+</body>
+</html>
