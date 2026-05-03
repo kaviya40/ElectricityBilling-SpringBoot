@@ -183,4 +183,3 @@ Bills past due date get 2% penalty added to total amount and status → OVERDUE.
 | QR Code    | Google ZXing             |
 | Icons      | Font Awesome 6           |
 | Build      | Maven                    |
-
